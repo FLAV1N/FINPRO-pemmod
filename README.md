@@ -1,4 +1,4 @@
-BPNN based facerecognition classification
+# BPNN based facerecognition classification
 *Currently NOT ACCURATE and still Overfitting!
 
 Kalo mau jalanin aja kodenya yang penting file2 ini di download dan ditaro di satu folder
