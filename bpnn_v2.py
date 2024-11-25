@@ -19,7 +19,7 @@ def derivativeSigmoid(z):
 def load_dataset(dataset_dir):
     data = []
     labels = []
-    label_map = {0: "ALVAN", 1: "ANGEL", 2: "ATHAYA", 3: "IQBAL", 4: "MALIK", 5: "PERSON1", 6: "PERSON2"}
+    label_map = {0: "ALVAN", 1: "ANCAS", 2: "ANGEL", 3: "ATHAYA", 4: "IQBAL", 5: "MALIK", 6: "PERSON1", 7: "PERSON2"}
 
     # Assign numeric labels to names
     for idx, person_name in enumerate(os.listdir(dataset_dir)):
@@ -61,7 +61,7 @@ class BPNN:
         self.Y = sigmoid(self.Yin)
         return self.Y
 
-    def backward(self, X, y, output, lambda_reg=0.01):
+    def backward(self, X, y, output, lambda_reg=0.0005):
         # Output layer errors
         sigma_output = (y - output) * derivativeSigmoid(output)
 
@@ -74,7 +74,7 @@ class BPNN:
         self.weight_node1 += self.learning_rate * (np.dot(X.T, sigma_hidden) - lambda_reg * self.weight_node1)
         self.bias_node1 += self.learning_rate * np.sum(sigma_hidden, axis=0)
 
-    def train(self, X, y, epochs=1000, patience=10, lambda_reg=0.01):
+    def train(self, X, y, epochs=5000, patience=300, lambda_reg=0.0005):
         best_loss = float('inf')
         patience_counter = 0
 
@@ -91,80 +91,50 @@ class BPNN:
                 break
             self.backward(X, y, output, lambda_reg)  # Pass regularization parameter
             if epoch % 100 == 0:
-                print(f"Epoch {epoch}, Loss: {loss:.4f}")
+                print(f"Epoch {epoch}, Loss: {loss:.8f}")
 
     def predict(self, X):
         output = self.forward(X)
         return np.argmax(output, axis=1)
 
 
-# Load dataset
-dataset_dir = "dataset"
-X, y, label_map = load_dataset(dataset_dir)
+# Main script for training
+if __name__ == "__main__":
+    # Load dataset
+    dataset_dir = "processed_images"
+    X, y, label_map = load_dataset(dataset_dir)
 
-# One-hot encode labels
-num_classes = len(label_map)
-encoder = OneHotEncoder(sparse_output=False, categories="auto")
-y_encoded = encoder.fit_transform(y.reshape(-1, 1))
+    # One-hot encode labels
+    num_classes = len(label_map)
+    encoder = OneHotEncoder(sparse_output=False, categories="auto")
+    y_encoded = encoder.fit_transform(y.reshape(-1, 1))
 
-# Split dataset into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, test_size=0.2, random_state=42)
+    # Split dataset into training and testing sets
+    X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, test_size=0.2, random_state=42)
 
-# Initialize the neural network
-input_size = X_train.shape[1]  # Number of pixels (flattened size of the image)
-hidden_size = 64  # Adjustable parameter
-output_size = num_classes
-learning_rate = 0.005
+    # Initialize the neural network
+    input_size = X_train.shape[1]  # Number of pixels (flattened size of the image)
+    hidden_size = 256  # Adjustable parameter
+    output_size = num_classes
+    learning_rate = 0.005
 
-model = BPNN(input_size, hidden_size, output_size, learning_rate)
+    model = BPNN(input_size, hidden_size, output_size, learning_rate)
 
-# Train the model
-model.train(X_train, y_train, epochs=2000)
+    # Train the model
+    model.train(X_train, y_train, epochs=5000)
 
-# Evaluate on test set
-predictions = model.predict(X_test)
-accuracy = np.mean(np.argmax(y_test, axis=1) == predictions)
-print(f"Test Accuracy: {accuracy:.2%}")
+    # Evaluate on test set
+    predictions = model.predict(X_test)
+    accuracy = np.mean(np.argmax(y_test, axis=1) == predictions)
+    print(f"Test Accuracy: {accuracy:.2%}")
 
-# Save the model
-with open("bpnn_model.pkl", "wb") as f:
-    pickle.dump({
-        "weight_node1": model.weight_node1,
-        "bias_node1": model.bias_node1,
-        "weight_output": model.weight_output,
-        "bias_output": model.bias_output,
-        "label_map": label_map
-    }, f)
-print("Model saved.")
-
-# Predict new images
-def predict_new_image(image_path, model_path="bpnn_model.pkl"):
-    # Load the model
-    with open(model_path, "rb") as f:
-        params = pickle.load(f)
-
-    # Preprocess the input image
-    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-    if image is None:
-        print("Error: Unable to read image.")
-        return
-    image = cv2.resize(image, (50, 50)).flatten() / 255.0
-
-    # Load model parameters
-    weight_node1 = params["weight_node1"]
-    bias_node1 = params["bias_node1"]
-    weight_output = params["weight_output"]
-    bias_output = params["bias_output"]
-    label_map = params["label_map"]
-
-    # Perform prediction
-    Zin = np.dot(image, weight_node1) + bias_node1
-    Zj = sigmoid(Zin)
-    Yin = np.dot(Zj, weight_output) + bias_output
-    Y = sigmoid(Yin)
-    predicted_label = np.argmax(Y)
-
-    print(f"Predicted: {label_map[predicted_label]}")
-
-# Example: predict a new image
-# predict_new_image("path/to/new_image.png")
+    # Save the model
+    with open("bpnn_model.pkl", "wb") as f:
+        pickle.dump({
+            "weight_node1": model.weight_node1,
+            "bias_node1": model.bias_node1,
+            "weight_output": model.weight_output,
+            "bias_output": model.bias_output,
+            "label_map": label_map
+        }, f)
+    print("Model saved.")
