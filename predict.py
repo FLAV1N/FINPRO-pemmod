@@ -5,7 +5,7 @@ import numpy as np
 import pickle
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
-from bpnn_v2 import sigmoid  # Import sigmoid function from the training code
+from bpnn import sigmoid  # Import sigmoid function from the training code
 
 resolusi = 50 #Pixel
 
